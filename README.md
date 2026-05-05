@@ -30,6 +30,18 @@ PatchPilot is a multi-agent GitHub issue resolver built with LangGraph. It reads
 
 <img src="img/streamlit-pr-output.png" alt="PatchPilot UI showing final PR URL and branch output from the PR opener node." width="100%">
 
+### GitHub pull request created by the run
+
+<img src="img/github-pr-overview.png" alt="GitHub pull request opened by PatchPilot against the private toy repository after a successful issue resolution run." width="100%">
+
+### GitHub review summary on the generated pull request
+
+<img src="img/github-copilot-pr-summary.png" alt="GitHub Copilot review summary for the PatchPilot-generated pull request, describing the fix and reviewed files." width="100%">
+
+### Review comment on the generated regression test
+
+<img src="img/github-copilot-review-comment.png" alt="GitHub Copilot review comment on the generated test file in the pull request, highlighting follow-up review feedback." width="100%">
+
 ### LangSmith trace
 
 <img src="img/langsmith-trace-waterfall.png" alt="LangSmith waterfall trace for a PatchPilot run, showing LangGraph nodes, model calls, latency, and token cost." width="100%">
@@ -222,6 +234,7 @@ Measured project results:
 
 - Successful end-to-end local issue resolution run for `gauravDombale/issue-resolver-toy-api` issue `#1`
 - Real PRs opened against the toy repo during testing
+- GitHub review artifacts captured from an actual resolver-opened PR
 - Local eval summary:
 
 ```json
