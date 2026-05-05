@@ -10,6 +10,12 @@ from resolver.tools.github_tools import GitHubTools
 
 def run(state: AgentState) -> AgentState:
     issue = state["issue"]
+    if str(issue["repo"]).startswith("eval/"):
+        return {
+            "pr_url": f"https://github.com/{issue['repo']}/pull/mock-eval-{issue['number']}",
+            "head_branch": f"eval/issue-{issue['number']}",
+            "errors": state.get("errors", []),
+        }
     repo_dir = Path(state["repo_dir"])
     repo = Repo(repo_dir)
     github_tools = GitHubTools()

@@ -33,4 +33,4 @@ def test_email_alias_issue_detection_uses_issue_text() -> None:
         "code_context": [],
         "test_log": "",
     }
-    assert code_writer._is_email_plus_alias_issue(state) is True
+    assert code_writer._issue_kind(state) == "email_plus_alias"

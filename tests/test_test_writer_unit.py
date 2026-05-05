@@ -97,7 +97,7 @@ def test_known_symbol_rewrite_maps_validate_email_to_is_valid_email() -> None:
 
 
 def test_email_alias_fallback_tests_target_api_endpoint() -> None:
-    src = test_writer._email_alias_fallback_tests()
+    src = test_writer._known_issue_tests("email_plus_alias")
     assert 'client.post("/users/validate"' in src
     assert "UserCreate" in src
     assert "is_valid_email" not in src
