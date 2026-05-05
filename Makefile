@@ -1,4 +1,4 @@
-.PHONY: run ui test lint typecheck eval
+.PHONY: run ui test lint typecheck eval eval-upload
 
 run:
 	uv run uvicorn resolver.api.main:app --host 0.0.0.0 --port 8000 --reload
@@ -17,3 +17,6 @@ typecheck:
 
 eval:
 	uv run python evals/run_evals.py
+
+eval-upload:
+	LANGSMITH_EVAL_UPLOAD=true uv run python evals/run_evals.py
