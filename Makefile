@@ -4,7 +4,7 @@ run:
 	uv run uvicorn resolver.api.main:app --host 0.0.0.0 --port 8000 --reload
 
 ui:
-	uv run streamlit run src/resolver/ui/app.py
+	uv run --extra ui streamlit run src/resolver/ui/app.py
 
 test:
 	uv run pytest -q
