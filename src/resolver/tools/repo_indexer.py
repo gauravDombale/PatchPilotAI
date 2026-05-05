@@ -2,14 +2,19 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+from typing import Any, cast
 
-from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 from pydantic import SecretStr
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from resolver.config import get_settings
+
+try:
+    from langchain_community.vectorstores import Chroma as _ImportedChroma
+    CHROMA_CLASS: Any | None = _ImportedChroma
+except ImportError:  # pragma: no cover - exercised in slim runtime image
+    CHROMA_CLASS = None
 
 EXCLUDE_DIRS = {
     ".git",
@@ -28,7 +33,23 @@ EXCLUDE_DIRS = {
 class RepoIndexer:
     def __init__(self) -> None:
         self.settings = get_settings()
-        self.splitter = RecursiveCharacterTextSplitter(chunk_size=1200, chunk_overlap=150)
+        self.chunk_size = 1200
+        self.chunk_overlap = 150
+
+    def _split_text(self, text: str) -> list[str]:
+        if not text:
+            return []
+        if len(text) <= self.chunk_size:
+            return [text]
+        chunks: list[str] = []
+        start = 0
+        while start < len(text):
+            end = min(start + self.chunk_size, len(text))
+            chunks.append(text[start:end])
+            if end >= len(text):
+                break
+            start = max(end - self.chunk_overlap, start + 1)
+        return chunks
 
     def _collect_files(self, repo_dir: Path) -> list[Path]:
         files: list[Path] = []
@@ -54,15 +75,17 @@ class RepoIndexer:
     def _collection_name(self, repo: str, sha: str) -> str:
         return hashlib.md5(f"{repo}:{sha}".encode(), usedforsecurity=False).hexdigest()
 
-    def index_repo(self, repo: str, sha: str, repo_dir: Path) -> Chroma:
+    def index_repo(self, repo: str, sha: str, repo_dir: Path) -> Any:
+        if CHROMA_CLASS is None:
+            raise RuntimeError("chromadb extra is not installed")
         collection_name = self._collection_name(repo, sha)
         docs: list[Document] = []
         for file in self._collect_files(repo_dir):
             text = file.read_text(encoding="utf-8", errors="ignore")
-            for chunk in self.splitter.split_text(text):
+            for chunk in self._split_text(text):
                 docs.append(Document(page_content=chunk, metadata={"path": str(file.relative_to(repo_dir))}))
         embedding = OpenAIEmbeddings(model=self.settings.embed_model, api_key=SecretStr(self.settings.openai_api_key.get_secret_value() if isinstance(self.settings.openai_api_key, SecretStr) else self.settings.openai_api_key))
-        return Chroma.from_documents(
+        return CHROMA_CLASS.from_documents(
             docs,
             embedding=embedding,
             persist_directory=self.settings.chroma_dir,
@@ -70,23 +93,23 @@ class RepoIndexer:
         )
 
     def retrieve(self, repo: str, sha: str, query: str, repo_dir: Path, k: int = 8) -> list[Document]:
-        if not self.settings.has_openai_key:
+        if not self.settings.has_openai_key or CHROMA_CLASS is None:
             return self._retrieve_local(query=query, repo_dir=repo_dir, k=k)
         collection_name = self._collection_name(repo, sha)
         embedding = OpenAIEmbeddings(model=self.settings.embed_model, api_key=SecretStr(self.settings.openai_api_key.get_secret_value() if isinstance(self.settings.openai_api_key, SecretStr) else self.settings.openai_api_key))
-        store = Chroma(
+        store = CHROMA_CLASS(
             collection_name=collection_name,
             persist_directory=self.settings.chroma_dir,
             embedding_function=embedding,
         )
         try:
-            docs = store.similarity_search(query, k=k)
+            docs = cast(list[Document], store.similarity_search(query, k=k))
             if docs:
                 return docs
             return self._retrieve_local(query=query, repo_dir=repo_dir, k=k)
         except Exception:
             store = self.index_repo(repo=repo, sha=sha, repo_dir=repo_dir)
-            docs = store.similarity_search(query, k=k)
+            docs = cast(list[Document], store.similarity_search(query, k=k))
             if docs:
                 return docs
             return self._retrieve_local(query=query, repo_dir=repo_dir, k=k)
@@ -97,7 +120,7 @@ class RepoIndexer:
         fallback_chunks: list[Document] = []
         for file in self._collect_files(repo_dir):
             text = file.read_text(encoding="utf-8", errors="ignore")
-            for chunk in self.splitter.split_text(text):
+            for chunk in self._split_text(text):
                 rel = str(file.relative_to(repo_dir))
                 if rel.startswith("app/") and rel.endswith(".py"):
                     fallback_chunks.append(Document(page_content=chunk, metadata={"path": rel}))
