@@ -1,0 +1,6 @@
+{
+  "repo": "owner/repo",
+  "issue_number": 42,
+  "title": "Fix input validation edge case",
+  "body": "When input is empty string, function should return None instead of raising." 
+}
