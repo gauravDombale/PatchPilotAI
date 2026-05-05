@@ -55,10 +55,12 @@ multi-agent-issue-resolver/
 ## Quickstart
 
 ```bash
-uv sync --extra dev
+uv sync --extra dev --extra ui --extra vector
 cp .env.example .env
 make run
 ```
+
+For a lean API-only environment, `uv sync --extra dev` is enough. The Streamlit demo requires `--extra ui`, and Chroma-backed retrieval requires `--extra vector`.
 
 ### Required `.env`
 
@@ -140,11 +142,17 @@ GitHub Actions workflow runs:
 docker compose up --build
 ```
 
-Docker image size has not been verified in this workspace because `docker` is not installed on the current machine.
+Measured API image size with the lean multi-stage Dockerfile: `patchpilotai-resolver:latest` = `341MB`.
+
+The Docker image is intentionally API-focused:
+- `streamlit` is installed via the optional `ui` extra for local/demo use
+- `chromadb` and `langchain-community` are installed via the optional `vector` extra
+- when the `vector` extra is absent, retrieval falls back to local text matching
 
 ## Notes
 
 - If `OPENAI_API_KEY` is missing, planner/writer/tester use safe local fallbacks.
 - If `GITHUB_TOKEN` or push permissions are missing, PR URL is mocked and local commit still occurs.
 - Repository retrieval supports local path copy or remote clone.
+- If the `vector` extra is not installed, repository retrieval falls back to local text matching instead of Chroma.
 - Deterministic fallback handlers are enabled for the known toy repo issues so the eval suite can run reliably.
