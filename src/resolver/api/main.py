@@ -10,9 +10,11 @@ from fastapi.responses import StreamingResponse
 from github.GithubException import GithubException, UnknownObjectException
 from pydantic import BaseModel
 
-from resolver.config import get_settings
+from resolver.config import configure_runtime_env, get_settings
 from resolver.graph import build_graph
 from resolver.tools.github_tools import GitHubTools
+
+configure_runtime_env()
 
 app = FastAPI(title="Multi-Agent Issue Resolver")
 graph = build_graph()

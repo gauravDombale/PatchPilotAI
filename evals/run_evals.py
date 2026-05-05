@@ -9,7 +9,10 @@ from typing import Any
 
 from langsmith import Client, evaluate
 
+from resolver.config import configure_runtime_env
 from resolver.graph import build_graph
+
+configure_runtime_env()
 
 
 def _load_dataset() -> list[dict[str, Any]]:

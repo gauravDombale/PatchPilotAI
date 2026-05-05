@@ -1,7 +1,11 @@
+import os
 from functools import lru_cache
 
+from dotenv import load_dotenv
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -10,6 +14,9 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr | str = ""
     github_token: str = ""
     langsmith_api_key: str | None = None
+    langsmith_tracing: bool = False
+    langsmith_endpoint: str = "https://api.smith.langchain.com"
+    langsmith_project: str = "PatchPilot"
     default_model: str = "gpt-4o-mini"
     coder_model: str = "gpt-4.1-mini"
     embed_model: str = "text-embedding-3-small"
@@ -30,3 +37,13 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()
+
+
+def configure_runtime_env() -> None:
+    settings = get_settings()
+    os.environ["LANGSMITH_TRACING"] = "true" if settings.langsmith_tracing else "false"
+    os.environ["LANGCHAIN_TRACING_V2"] = os.environ["LANGSMITH_TRACING"]
+    os.environ["LANGSMITH_ENDPOINT"] = settings.langsmith_endpoint
+    os.environ["LANGSMITH_PROJECT"] = settings.langsmith_project
+    if settings.langsmith_api_key:
+        os.environ["LANGSMITH_API_KEY"] = settings.langsmith_api_key
